@@ -82,9 +82,9 @@ export const App = () => {
         setAlgorithm(event.target.value);
     }
 
-    const handleClick = (event: Konva.KonvaEventObject<MouseEvent>) => {
-        setSelectedCoordinates(`x: ${event.target.x()}, y: ${event.target.y()}`);
-    }
+    // const handleClick = (event: Konva.KonvaEventObject<MouseEvent>) => {
+    //     setSelectedCoordinates(`x: ${event.target.x()}, y: ${event.target.y()}`);
+    // }
 
     const solveHeuristic = () => {
         if (numPointsRef.current?.value === "") {
@@ -125,7 +125,6 @@ export const App = () => {
           <div style={style.mainCanvas} ref={canvasRef}>
               <Stage width={dimensions.width} height={dimensions.height}>
                   <Layer>
-                      <Circle onClick={handleClick} x={dimensions.width - 10} y={dimensions.height - 10} radius={5} fill="green" />
                   </Layer>
               </Stage>
           </div>
