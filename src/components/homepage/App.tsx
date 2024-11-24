@@ -65,6 +65,7 @@ export const App = () => {
     const style = createStyleClasses();
 
     const getGraph = async (numCities : number, boundaries : number[]) : Promise<Graph> => {
+        // TO FIX
         const graphAttributes = {
             numCities : numCities,
             boundaries : boundaries
