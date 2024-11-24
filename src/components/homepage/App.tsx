@@ -1,4 +1,4 @@
-import React, {ChangeEvent, MouseEventHandler, useEffect, useRef, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
     Box,
     Button,
@@ -10,8 +10,8 @@ import {
     TextField,
     Typography
 } from "@mui/material";
-import {Circle, Layer, Stage} from 'react-konva';
-import Konva from "konva";
+import {Layer, Stage} from 'react-konva';
+import {Graph} from "../types/graph";
 
 const createStyleClasses = () => {
     return {
@@ -64,6 +64,24 @@ export const App = () => {
 
     const style = createStyleClasses();
 
+    const getGraph = async (numCities : number, boundaries : number[]) : Promise<Graph> => {
+        const graphAttributes = {
+            numCities : numCities,
+            boundaries : boundaries
+        }
+        const response = await fetch('http://localhost:8080/graph',
+            {
+                method: 'POST',
+                headers: {
+                    AccessControlAllowOrigin: "*",
+                    AccessControlAllowMethods: "POST",
+                    AccessControlAllowHeaders: "ContentType"
+                },
+                body : JSON.stringify(graphAttributes)
+            });
+        return await response.json();
+    }
+
     useEffect(() => {
         if (!canvasRef.current) {
             return;
@@ -93,6 +111,8 @@ export const App = () => {
             alert("Invalid number of points, must be an integer > 0");
         } else if (algorithm === "") {
             alert("You need to pick an algorithm");
+        } else {
+            console.log(getGraph(Number(numPointsRef.current?.value), [dimensions.width, dimensions.height]));
         }
 
     }
