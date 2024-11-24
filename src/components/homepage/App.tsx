@@ -1,5 +1,15 @@
-import React, {useEffect, useRef, useState} from 'react';
-import {Box, Button, FormControl, InputLabel, MenuItem, Select, SelectChangeEvent, TextField} from "@mui/material";
+import React, {ChangeEvent, MouseEventHandler, useEffect, useRef, useState} from 'react';
+import {
+    Box,
+    Button,
+    FormControl,
+    InputLabel,
+    MenuItem,
+    Select,
+    SelectChangeEvent,
+    TextField,
+    Typography
+} from "@mui/material";
 import {Circle, Layer, Stage} from 'react-konva';
 import Konva from "konva";
 
@@ -26,7 +36,7 @@ const createStyleClasses = () => {
             marginRight : '10px',
         },
         applyButton : {
-            margin : 0
+            marginRight : '10px',
         },
         mainCanvas : {
             margin: '10px',
@@ -34,16 +44,24 @@ const createStyleClasses = () => {
             height: 'calc(100% - 100px)',
             borderStyle: 'solid',
             borderColor: 'black',
+        },
+        selectedPoint : {
+            height: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
         }
     }
 }
 
 export const App = () => {
     const [algorithm, setAlgorithm] = useState('');
+    const [selectedCoordinates, setSelectedCoordinates] = useState("None");
     const [dimensions, setDimensions] = useState({width: 0, height: 0})
+
     const canvasRef = useRef<HTMLDivElement>(null);
-    const widthOffset = 25;
-    const heightOffset = 105;
+    const numPointsRef = useRef<HTMLInputElement>(null);
+
     const style = createStyleClasses();
 
     useEffect(() => {
@@ -55,33 +73,42 @@ export const App = () => {
                 width: canvasRef.current?.offsetWidth || 0,
                 height: canvasRef.current?.offsetHeight || 0
             })
-            console.log("New dimensions " +  dimensions.width + " " + dimensions.height);
         })
-
         resizeObserver.observe(canvasRef.current);
         return () => resizeObserver.disconnect();
     }, [dimensions.height, dimensions.width])
 
-    const handleChange = (event: SelectChangeEvent) => {
+    const handleAlgorithmSelect = (event: SelectChangeEvent) => {
         setAlgorithm(event.target.value);
     }
 
     const handleClick = (event: Konva.KonvaEventObject<MouseEvent>) => {
-        console.log(event.target.x() + ' ' + event.target.y());
+        setSelectedCoordinates(`x: ${event.target.x()}, y: ${event.target.y()}`);
+    }
+
+    const solveHeuristic = () => {
+        if (numPointsRef.current?.value === "") {
+            alert("You need to enter a number of points!");
+        } else if (!Number.isInteger(Number(numPointsRef.current?.value)) || Number(numPointsRef.current?.value) <= 0)  {
+            alert("Invalid number of points, must be an integer > 0");
+        } else if (algorithm === "") {
+            alert("You need to pick an algorithm");
+        }
+
     }
 
     return (
       <Box sx={style.mainContainer}>
           <Box sx={style.header}>
               <FormControl style={style.pointInput}>
-                  <TextField label="Number of points" variant="outlined"></TextField>
+                  <TextField inputRef={numPointsRef} label="Number of points" variant="outlined"></TextField>
               </FormControl>
               <FormControl style={style.algorithmSelector}>
                   <InputLabel>Algorithm</InputLabel>
                   <Select
                       value={algorithm}
                       label="Algorithm"
-                      onChange={handleChange}
+                      onChange={handleAlgorithmSelect}
                   >
                       <MenuItem value="Local Search">Local Search</MenuItem>
                       <MenuItem value="Tabu Search">Tabu Search</MenuItem>
@@ -90,12 +117,15 @@ export const App = () => {
                       <MenuItem value="Particle Swarm">Particle Swarm</MenuItem>
                   </Select>
               </FormControl >
-              <Button style={style.applyButton} variant="outlined">Solve</Button>
+              <Button style={style.applyButton} variant="outlined" onClick={solveHeuristic}>Solve</Button>
+              <Box>
+                  <Typography sx={style.selectedPoint}>Selected point: {selectedCoordinates}</Typography>
+              </Box>
           </Box>
           <div style={style.mainCanvas} ref={canvasRef}>
               <Stage width={dimensions.width} height={dimensions.height}>
                   <Layer>
-                      <Circle onClick={handleClick} x={2000} y={1000} radius={50} fill="green" />
+                      <Circle onClick={handleClick} x={dimensions.width - 10} y={dimensions.height - 10} radius={5} fill="green" />
                   </Layer>
               </Stage>
           </div>
