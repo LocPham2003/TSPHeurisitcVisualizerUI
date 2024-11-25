@@ -12,6 +12,8 @@ import {
 } from "@mui/material";
 import {Layer, Stage} from 'react-konva';
 import {Graph} from "../types/graph";
+import Konva from "konva";
+import Circle = Konva.Circle;
 
 const createStyleClasses = () => {
     return {
@@ -57,6 +59,7 @@ const createStyleClasses = () => {
 export const App = () => {
     const [algorithm, setAlgorithm] = useState('');
     const [selectedCoordinates, setSelectedCoordinates] = useState("None");
+    const [graph, setGraph] = useState<Graph>({cities : [], distances : []});
     const [dimensions, setDimensions] = useState({width: 0, height: 0})
 
     const canvasRef = useRef<HTMLDivElement>(null);
@@ -65,21 +68,22 @@ export const App = () => {
     const style = createStyleClasses();
 
     const getGraph = async (numCities : number, boundaries : number[]) : Promise<Graph> => {
-        // TO FIX
         const graphAttributes = {
             numCities : numCities,
             boundaries : boundaries
         }
-        const response = await fetch('http://localhost:8080/graph',
+
+        const response = await fetch('http://localhost:8080/graph/',
             {
                 method: 'POST',
                 headers: {
-                    AccessControlAllowOrigin: "*",
-                    AccessControlAllowMethods: "POST",
-                    AccessControlAllowHeaders: "ContentType"
+                    "Content-Type": "application/json"
                 },
                 body : JSON.stringify(graphAttributes)
             });
+
+
+
         return await response.json();
     }
 
@@ -113,7 +117,12 @@ export const App = () => {
         } else if (algorithm === "") {
             alert("You need to pick an algorithm");
         } else {
-            console.log(getGraph(Number(numPointsRef.current?.value), [dimensions.width, dimensions.height]));
+            getGraph(Number(numPointsRef.current?.value), [dimensions.width, dimensions.height]).then(res => {
+                setGraph({
+                    cities : res.cities,
+                    distances : res.distances
+                });
+            })
         }
 
     }
