@@ -8,9 +8,8 @@ import {
     Select,
     SelectChangeEvent,
     TextField,
-    Typography
 } from "@mui/material";
-import {Graph} from "../types/graph";
+import {Graph, Solution} from "../types/utilTypes";
 import {RADIUS} from "../../Constants";
 
 const createStyleClasses = () => {
@@ -61,7 +60,8 @@ const createStyleClasses = () => {
 export const App = () => {
     const [algorithm, setAlgorithm] = useState('');
     const [isCitiesGenerated, setIsCitiesGenerated] = useState(false);
-    const [graph, setGraph] = useState<Graph>({cities : [], distances : []});
+    const [graph, setGraph] = useState<Graph>({cities : []});
+    const [solution, setSolution] = useState<Solution>({solution : []});
     const [dimensions, setDimensions] = useState({width: 0, height: 0})
 
     const canvasContainerRef = useRef<HTMLDivElement>(null);
@@ -88,6 +88,24 @@ export const App = () => {
         return await response.json();
     }
 
+    const getSolution = async () : Promise<Solution> => {
+        const solutionAttributes = {
+            cities : graph.cities,
+            algoType : algorithm
+        }
+
+        const response = await fetch('http://localhost:8080/solution/',
+            {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body : JSON.stringify(solutionAttributes)
+            });
+
+        return await response.json();
+    }
+
     useEffect(() => {
         if (!canvasContainerRef.current) {
             return;
@@ -103,7 +121,6 @@ export const App = () => {
     }, [dimensions.width, dimensions.height])
 
     useEffect(() => {
-        console.log(graph.cities);
         if (canvasRef.current) {
             const ctx = canvasRef.current.getContext("2d");
             if (ctx) {
@@ -114,11 +131,17 @@ export const App = () => {
                     ctx.arc(city.x, city.y, RADIUS, 0, Math.PI * 2);
                     ctx.fillStyle = "red";
                 });
+
+                for (let i = 0; i < solution.solution.length - 1; i++) {
+                    ctx.moveTo(solution.solution[i].x, solution.solution[i].y);
+                    ctx.lineTo(solution.solution[i + 1].x, solution.solution[i + 1].y);
+                }
+
                 ctx.fill();
                 ctx.stroke();
             }
         }
-    }, [graph])
+    }, [graph, solution])
 
     const handleAlgorithmSelect = (event: SelectChangeEvent) => {
         setAlgorithm(event.target.value);
@@ -143,8 +166,8 @@ export const App = () => {
         } else if (algorithm === "") {
             alert("You need to pick an algorithm");
         } else {
-            getGraph(Number(numPointsRef.current?.value), [dimensions.width, dimensions.height]).then(res => {
-                setGraph(res);
+            getSolution().then(res => {
+                setSolution(res);
             })
         }
 
@@ -166,7 +189,7 @@ export const App = () => {
                   >
                       <MenuItem value="Local Search">Local Search</MenuItem>
                       <MenuItem value="Tabu Search">Tabu Search</MenuItem>
-                      <MenuItem value="Simulated Annealing">Simulated Annealing</MenuItem>
+                  `    <MenuItem value="Simulated Annealing">Simulated Annealing</MenuItem>
                       <MenuItem value="Ant Colony">Ant Colony</MenuItem>
                       <MenuItem value="Particle Swarm">Particle Swarm</MenuItem>
                   </Select>

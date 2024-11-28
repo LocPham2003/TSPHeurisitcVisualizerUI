@@ -5,5 +5,8 @@ export interface City {
 
 export interface Graph {
     cities : City[],
-    distances : number[][],
+}
+
+export interface Solution {
+    solution : City[];
 }
