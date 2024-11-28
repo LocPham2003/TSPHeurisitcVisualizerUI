@@ -10,10 +10,8 @@ import {
     TextField,
     Typography
 } from "@mui/material";
-import {Layer, Stage} from 'react-konva';
 import {Graph} from "../types/graph";
-import Konva from "konva";
-import Circle = Konva.Circle;
+import {RADIUS} from "../../Constants";
 
 const createStyleClasses = () => {
     return {
@@ -40,12 +38,16 @@ const createStyleClasses = () => {
         applyButton : {
             marginRight : '10px',
         },
-        mainCanvas : {
+        canvasContainer : {
             margin: '10px',
             width : 'calc(100% - 20px)',
             height: 'calc(100% - 100px)',
             borderStyle: 'solid',
             borderColor: 'black',
+        },
+        mainCanvas : {
+            width: '100%',
+            height: '100%',
         },
         selectedPoint : {
             height: '100%',
@@ -62,7 +64,8 @@ export const App = () => {
     const [graph, setGraph] = useState<Graph>({cities : [], distances : []});
     const [dimensions, setDimensions] = useState({width: 0, height: 0})
 
-    const canvasRef = useRef<HTMLDivElement>(null);
+    const canvasContainerRef = useRef<HTMLDivElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
     const numPointsRef = useRef<HTMLInputElement>(null);
 
     const style = createStyleClasses();
@@ -82,32 +85,45 @@ export const App = () => {
                 body : JSON.stringify(graphAttributes)
             });
 
-
-
         return await response.json();
     }
 
     useEffect(() => {
-        if (!canvasRef.current) {
+        if (!canvasContainerRef.current) {
             return;
         }
         const resizeObserver = new ResizeObserver(() => {
             setDimensions({
-                width: canvasRef.current?.offsetWidth || 0,
-                height: canvasRef.current?.offsetHeight || 0
+                width: canvasContainerRef.current?.offsetWidth || 0,
+                height: canvasContainerRef.current?.offsetHeight || 0
             })
         })
-        resizeObserver.observe(canvasRef.current);
+        resizeObserver.observe(canvasContainerRef.current);
         return () => resizeObserver.disconnect();
-    }, [dimensions.height, dimensions.width])
+    }, [dimensions.width, dimensions.height])
+
+    useEffect(() => {
+        console.log(graph.cities);
+        if (canvasRef.current) {
+            const ctx = canvasRef.current.getContext("2d");
+            console.log(canvasRef.current.height + " " + canvasRef.current.width);
+            if (ctx) {
+                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+                ctx.beginPath();
+                graph.cities.forEach(city => {
+                    ctx.moveTo(city.x + RADIUS, city.y);
+                    ctx.arc(city.x, city.y, RADIUS, 0, Math.PI * 2);
+                    ctx.fillStyle = "red";
+                });
+                ctx.fill();
+                ctx.stroke();
+            }
+        }
+    }, [graph])
 
     const handleAlgorithmSelect = (event: SelectChangeEvent) => {
         setAlgorithm(event.target.value);
     }
-
-    // const handleClick = (event: Konva.KonvaEventObject<MouseEvent>) => {
-    //     setSelectedCoordinates(`x: ${event.target.x()}, y: ${event.target.y()}`);
-    // }
 
     const solveHeuristic = () => {
         if (numPointsRef.current?.value === "") {
@@ -118,10 +134,7 @@ export const App = () => {
             alert("You need to pick an algorithm");
         } else {
             getGraph(Number(numPointsRef.current?.value), [dimensions.width, dimensions.height]).then(res => {
-                setGraph({
-                    cities : res.cities,
-                    distances : res.distances
-                });
+                setGraph(res);
             })
         }
 
@@ -152,13 +165,11 @@ export const App = () => {
                   <Typography sx={style.selectedPoint}>Selected point: {selectedCoordinates}</Typography>
               </Box>
           </Box>
-          <div style={style.mainCanvas} ref={canvasRef}>
-              <Stage width={dimensions.width} height={dimensions.height}>
-                  <Layer>
-                  </Layer>
-              </Stage>
+          <div style={style.canvasContainer} ref={canvasContainerRef}>
+              <canvas width={dimensions.width} height={dimensions.height} ref={canvasRef}/>
           </div>
 
+
       </Box>
-  );
+);
 }
