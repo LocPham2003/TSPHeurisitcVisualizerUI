@@ -35,7 +35,7 @@ const createStyleClasses = () => {
             height: '100%',
             marginRight : '10px',
         },
-        applyButton : {
+        headerButton : {
             marginRight : '10px',
         },
         canvasContainer : {
@@ -60,7 +60,7 @@ const createStyleClasses = () => {
 
 export const App = () => {
     const [algorithm, setAlgorithm] = useState('');
-    const [selectedCoordinates, setSelectedCoordinates] = useState("None");
+    const [isCitiesGenerated, setIsCitiesGenerated] = useState(false);
     const [graph, setGraph] = useState<Graph>({cities : [], distances : []});
     const [dimensions, setDimensions] = useState({width: 0, height: 0})
 
@@ -106,7 +106,6 @@ export const App = () => {
         console.log(graph.cities);
         if (canvasRef.current) {
             const ctx = canvasRef.current.getContext("2d");
-            console.log(canvasRef.current.height + " " + canvasRef.current.width);
             if (ctx) {
                 ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
                 ctx.beginPath();
@@ -125,11 +124,22 @@ export const App = () => {
         setAlgorithm(event.target.value);
     }
 
-    const solveHeuristic = () => {
+    const generateCities = () => {
         if (numPointsRef.current?.value === "") {
             alert("You need to enter a number of points!");
         } else if (!Number.isInteger(Number(numPointsRef.current?.value)) || Number(numPointsRef.current?.value) <= 0)  {
             alert("Invalid number of points, must be an integer > 0");
+        } else {
+            setIsCitiesGenerated(true);
+            getGraph(Number(numPointsRef.current?.value), [dimensions.width, dimensions.height]).then(res => {
+                setGraph(res);
+            })
+        }
+    }
+
+    const solveHeuristic = () => {
+        if (!isCitiesGenerated) {
+            alert("You need to enter the number of points");
         } else if (algorithm === "") {
             alert("You need to pick an algorithm");
         } else {
@@ -146,6 +156,7 @@ export const App = () => {
               <FormControl style={style.pointInput}>
                   <TextField inputRef={numPointsRef} label="Number of points" variant="outlined"></TextField>
               </FormControl>
+              <Button style={style.headerButton} variant="outlined" onClick={generateCities}>Generate Cities</Button>
               <FormControl style={style.algorithmSelector}>
                   <InputLabel>Algorithm</InputLabel>
                   <Select
@@ -160,10 +171,9 @@ export const App = () => {
                       <MenuItem value="Particle Swarm">Particle Swarm</MenuItem>
                   </Select>
               </FormControl >
-              <Button style={style.applyButton} variant="outlined" onClick={solveHeuristic}>Solve</Button>
-              <Box>
-                  <Typography sx={style.selectedPoint}>Selected point: {selectedCoordinates}</Typography>
-              </Box>
+              {!isCitiesGenerated ? <Button style={style.headerButton} variant="outlined" disabled>Solve</Button> :
+                  <Button style={style.headerButton} variant="outlined" onClick={solveHeuristic}>Solve</Button>
+              }
           </Box>
           <div style={style.canvasContainer} ref={canvasContainerRef}>
               <canvas width={dimensions.width} height={dimensions.height} ref={canvasRef}/>
