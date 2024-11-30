@@ -58,7 +58,7 @@ const createStyleClasses = () => {
 }
 
 export const App = () => {
-    const [algorithm, setAlgorithm] = useState('');
+    const [algorithm, setAlgorithm] = useState("");
     const [isCitiesGenerated, setIsCitiesGenerated] = useState(false);
     const [graph, setGraph] = useState<Graph>({cities : []});
     const [solution, setSolution] = useState<Solution>({solution : []});
@@ -125,23 +125,39 @@ export const App = () => {
             const ctx = canvasRef.current.getContext("2d");
             if (ctx) {
                 ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-                ctx.beginPath();
-                graph.cities.forEach(city => {
-                    ctx.moveTo(city.x + RADIUS, city.y);
-                    ctx.arc(city.x, city.y, RADIUS, 0, Math.PI * 2);
-                    ctx.fillStyle = "red";
-                });
+                for (let i = 0; i < graph.cities.length; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(graph.cities[i].x + RADIUS, graph.cities[i].y);
+                    ctx.arc(graph.cities[i].x, graph.cities[i].y, RADIUS, 0, Math.PI * 2);
+                    ctx.fillStyle = "blue";
+                    ctx.fill();
+                    ctx.closePath();
+                }
+            }
+        }
+    }, [graph])
 
+    useEffect(() => {
+        if (canvasRef.current) {
+            const ctx = canvasRef.current.getContext("2d");
+            if (ctx) {
+                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+                for (let i = 0; i < solution.solution.length; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(solution.solution[i].x + RADIUS, solution.solution[i].y);
+                    ctx.arc(solution.solution[i].x, solution.solution[i].y, RADIUS, 0, Math.PI * 2);
+                    ctx.fillStyle = i === 0 || i === solution.solution.length - 1 ? "red" : "blue";
+                    ctx.fill();
+                    ctx.closePath();
+                }
                 for (let i = 0; i < solution.solution.length - 1; i++) {
                     ctx.moveTo(solution.solution[i].x, solution.solution[i].y);
                     ctx.lineTo(solution.solution[i + 1].x, solution.solution[i + 1].y);
                 }
-
-                ctx.fill();
                 ctx.stroke();
             }
         }
-    }, [graph, solution])
+    }, [solution]);
 
     const handleAlgorithmSelect = (event: SelectChangeEvent) => {
         setAlgorithm(event.target.value);
@@ -163,8 +179,6 @@ export const App = () => {
     const solveHeuristic = () => {
         if (!isCitiesGenerated) {
             alert("You need to enter the number of points");
-        } else if (algorithm === "") {
-            alert("You need to pick an algorithm");
         } else {
             getSolution().then(res => {
                 setSolution(res);
@@ -187,11 +201,11 @@ export const App = () => {
                       label="Algorithm"
                       onChange={handleAlgorithmSelect}
                   >
-                      <MenuItem value="Local Search">Local Search</MenuItem>
-                      <MenuItem value="Tabu Search">Tabu Search</MenuItem>
-                  `    <MenuItem value="Simulated Annealing">Simulated Annealing</MenuItem>
-                      <MenuItem value="Ant Colony">Ant Colony</MenuItem>
-                      <MenuItem value="Particle Swarm">Particle Swarm</MenuItem>
+                      <MenuItem value="ls">Local Search</MenuItem>
+                      <MenuItem value="ts">Tabu Search</MenuItem>
+                  `    <MenuItem value="sa">Simulated Annealing</MenuItem>
+                      <MenuItem value="ac">Ant Colony</MenuItem>
+                      <MenuItem value="pso">Particle Swarm</MenuItem>
                   </Select>
               </FormControl >
               {!isCitiesGenerated ? <Button style={style.headerButton} variant="outlined" disabled>Solve</Button> :

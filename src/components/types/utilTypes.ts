@@ -10,3 +10,4 @@ export interface Graph {
 export interface Solution {
     solution : City[];
 }
+
