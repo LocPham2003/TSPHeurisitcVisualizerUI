@@ -3,14 +3,14 @@ import {
     Box,
     Button,
     FormControl,
-    InputLabel,
+    InputLabel, Menu,
     MenuItem,
     Select,
     SelectChangeEvent,
     TextField,
 } from "@mui/material";
 import {Graph, Solution} from "../types/utilTypes";
-import {RADIUS} from "../../Constants";
+import {ALGORITHM_PARAMETERS, ALGORITHMS, DEFAULT_ALGORITHM, RADIUS} from "../../Constants";
 
 const createStyleClasses = () => {
     return {
@@ -34,6 +34,16 @@ const createStyleClasses = () => {
             height: '100%',
             marginRight : '10px',
         },
+        paramsInputContainer : {
+            display: 'flex',
+            flexDirection: 'row',
+            height: '100%',
+        },
+        paramsInput : {
+            height: '100%',
+            marginRight : '10px',
+        },
+
         headerButton : {
             marginRight : '10px',
         },
@@ -58,7 +68,7 @@ const createStyleClasses = () => {
 }
 
 export const App = () => {
-    const [algorithm, setAlgorithm] = useState("");
+    const [algorithm, setAlgorithm] = useState(DEFAULT_ALGORITHM);
     const [isCitiesGenerated, setIsCitiesGenerated] = useState(false);
     const [graph, setGraph] = useState<Graph>({cities : []});
     const [solution, setSolution] = useState<Solution>({solution : []});
@@ -129,35 +139,32 @@ export const App = () => {
                     ctx.beginPath();
                     ctx.moveTo(graph.cities[i].x + RADIUS, graph.cities[i].y);
                     ctx.arc(graph.cities[i].x, graph.cities[i].y, RADIUS, 0, Math.PI * 2);
-                    ctx.fillStyle = "blue";
+                    if (solution.solution.length > 0) {
+                        if (graph.cities[i].x === solution.solution[0].x && graph.cities[i].y === solution.solution[0].y) {
+                            ctx.fillStyle = "green";
+                        } else if (graph.cities[i].x === solution.solution[solution.solution.length - 1].x
+                            && graph.cities[i].y === solution.solution[solution.solution.length - 1].y) {
+                            ctx.fillStyle = "red";
+                        } else {
+                            ctx.fillStyle = "blue";
+                        }
+                    } else {
+                        ctx.fillStyle = "blue";
+                    }
                     ctx.fill();
+                    ctx.stroke();
                     ctx.closePath();
                 }
-            }
-        }
-    }, [graph])
 
-    useEffect(() => {
-        if (canvasRef.current) {
-            const ctx = canvasRef.current.getContext("2d");
-            if (ctx) {
-                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-                for (let i = 0; i < solution.solution.length; i++) {
-                    ctx.beginPath();
-                    ctx.moveTo(solution.solution[i].x + RADIUS, solution.solution[i].y);
-                    ctx.arc(solution.solution[i].x, solution.solution[i].y, RADIUS, 0, Math.PI * 2);
-                    ctx.fillStyle = i === 0 || i === solution.solution.length - 1 ? "red" : "blue";
-                    ctx.fill();
-                    ctx.closePath();
-                }
                 for (let i = 0; i < solution.solution.length - 1; i++) {
                     ctx.moveTo(solution.solution[i].x, solution.solution[i].y);
                     ctx.lineTo(solution.solution[i + 1].x, solution.solution[i + 1].y);
                 }
                 ctx.stroke();
             }
+
         }
-    }, [solution]);
+    }, [graph, solution])
 
     const handleAlgorithmSelect = (event: SelectChangeEvent) => {
         setAlgorithm(event.target.value);
@@ -180,11 +187,12 @@ export const App = () => {
         if (!isCitiesGenerated) {
             alert("You need to enter the number of points");
         } else {
+            ALGORITHM_PARAMETERS[algorithm].forEach((params) => {console.log(params.paramRef.current?.value)});
+
             getSolution().then(res => {
                 setSolution(res);
             })
         }
-
     }
 
     return (
@@ -201,13 +209,16 @@ export const App = () => {
                       label="Algorithm"
                       onChange={handleAlgorithmSelect}
                   >
-                      <MenuItem value="ls">Local Search</MenuItem>
-                      <MenuItem value="ts">Tabu Search</MenuItem>
-                  `    <MenuItem value="sa">Simulated Annealing</MenuItem>
-                      <MenuItem value="ac">Ant Colony</MenuItem>
-                      <MenuItem value="pso">Particle Swarm</MenuItem>
+                      {ALGORITHMS.map((algorithm) => (
+                          <MenuItem key={algorithm.value} value={algorithm.value}>{algorithm.label}</MenuItem>
+                      ))}
                   </Select>
-              </FormControl >
+              </FormControl>
+              <FormControl sx={style.paramsInputContainer}>
+                  {ALGORITHM_PARAMETERS[algorithm].map((params) => (
+                      <TextField key={`${params.paramName}-${algorithm}`} style={style.paramsInput} inputRef={params.paramRef} label={params.paramName} variant="outlined"></TextField>
+                  ))}
+              </FormControl>
               {!isCitiesGenerated ? <Button style={style.headerButton} variant="outlined" disabled>Solve</Button> :
                   <Button style={style.headerButton} variant="outlined" onClick={solveHeuristic}>Solve</Button>
               }
