@@ -3,7 +3,7 @@ import {
     Box,
     Button,
     FormControl,
-    InputLabel, Menu,
+    InputLabel,
     MenuItem,
     Select,
     SelectChangeEvent,
