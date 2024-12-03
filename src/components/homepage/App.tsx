@@ -7,9 +7,9 @@ import {
     MenuItem,
     Select,
     SelectChangeEvent,
-    TextField,
+    TextField, Typography,
 } from "@mui/material";
-import {Graph, Solution} from "../types/utilTypes";
+import {Graph, Parameter, Solution, SolutionAttributes} from "../types/utilTypes";
 import {ALGORITHM_PARAMETERS, ALGORITHMS, DEFAULT_ALGORITHM, RADIUS} from "../../Constants";
 
 const createStyleClasses = () => {
@@ -43,9 +43,15 @@ const createStyleClasses = () => {
             height: '100%',
             marginRight : '10px',
         },
-
         headerButton : {
             marginRight : '10px',
+        },
+        solutionCost : {
+            marginRight : '10px',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
         },
         canvasContainer : {
             margin: '10px',
@@ -69,9 +75,8 @@ const createStyleClasses = () => {
 
 export const App = () => {
     const [algorithm, setAlgorithm] = useState(DEFAULT_ALGORITHM);
-    const [isCitiesGenerated, setIsCitiesGenerated] = useState(false);
     const [graph, setGraph] = useState<Graph>({cities : []});
-    const [solution, setSolution] = useState<Solution>({solution : []});
+    const [solution, setSolution] = useState<Solution>({solution : [], cost : 0});
     const [dimensions, setDimensions] = useState({width: 0, height: 0})
 
     const canvasContainerRef = useRef<HTMLDivElement>(null);
@@ -98,12 +103,7 @@ export const App = () => {
         return await response.json();
     }
 
-    const getSolution = async () : Promise<Solution> => {
-        const solutionAttributes = {
-            cities : graph.cities,
-            algoType : algorithm
-        }
-
+    const getSolution = async (solutionAttributes : SolutionAttributes) : Promise<Solution> => {
         const response = await fetch('http://localhost:8080/solution/',
             {
                 method: 'POST',
@@ -176,7 +176,7 @@ export const App = () => {
         } else if (!Number.isInteger(Number(numPointsRef.current?.value)) || Number(numPointsRef.current?.value) <= 0)  {
             alert("Invalid number of points, must be an integer > 0");
         } else {
-            setIsCitiesGenerated(true);
+            setSolution({ solution : [], cost : 0});
             getGraph(Number(numPointsRef.current?.value), [dimensions.width, dimensions.height]).then(res => {
                 setGraph(res);
             })
@@ -184,12 +184,21 @@ export const App = () => {
     }
 
     const solveHeuristic = () => {
-        if (!isCitiesGenerated) {
+        if (numPointsRef.current?.value === "") {
             alert("You need to enter the number of points");
         } else {
-            ALGORITHM_PARAMETERS[algorithm].forEach((params) => {console.log(params.paramRef.current?.value)});
+            const params : Parameter[] = ALGORITHM_PARAMETERS[algorithm].map(params => {
+                return {
+                    name : params.paramKey,
+                    value : params.paramRef.current.value || 0,
+                }
+            })
 
-            getSolution().then(res => {
+            getSolution({
+                cities : graph.cities,
+                algoType : algorithm,
+                parameters : params
+            }).then(res => {
                 setSolution(res);
             })
         }
@@ -214,14 +223,17 @@ export const App = () => {
                       ))}
                   </Select>
               </FormControl>
-              <FormControl sx={style.paramsInputContainer}>
+              <FormControl>
                   {ALGORITHM_PARAMETERS[algorithm].map((params) => (
-                      <TextField key={`${params.paramName}-${algorithm}`} style={style.paramsInput} inputRef={params.paramRef} label={params.paramName} variant="outlined"></TextField>
+                      <TextField key={params.paramKey} style={style.paramsInput} inputRef={params.paramRef} label={params.paramName} variant="outlined"></TextField>
                   ))}
               </FormControl>
-              {!isCitiesGenerated ? <Button style={style.headerButton} variant="outlined" disabled>Solve</Button> :
+              {graph.cities.length === 0 ? <Button style={style.headerButton} variant="outlined" disabled>Solve</Button> :
                   <Button style={style.headerButton} variant="outlined" onClick={solveHeuristic}>Solve</Button>
               }
+              <FormControl>
+                  {solution.cost !== 0 ? <Typography style={style.solutionCost} variant="h5">Solution cost: {solution.cost}</Typography> : null}
+              </FormControl>
           </Box>
           <div style={style.canvasContainer} ref={canvasContainerRef}>
               <canvas width={dimensions.width} height={dimensions.height} ref={canvasRef}/>
