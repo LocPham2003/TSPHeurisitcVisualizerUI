@@ -1,4 +1,5 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Client, Message } from '@stomp/stompjs'
 import {
     Box,
     Button,
@@ -83,6 +84,24 @@ export const App = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const numPointsRef = useRef<HTMLInputElement>(null);
 
+    const client = new Client({
+        brokerURL : 'ws://localhost:8080/visualizer',
+        debug: (str)=> {
+            console.log(str);
+        },
+        reconnectDelay: 5000,
+        heartbeatIncoming: 4000,
+        heartbeatOutgoing: 4000,
+    });
+
+    client.onConnect = (frame) => {
+        console.log("Connected ", frame)
+    };
+
+    client.onWebSocketError = (frame) => {
+        console.log("WebSocket Error", frame)
+    };
+
     const style = createStyleClasses();
 
     const getGraph = async (numCities : number, boundaries : number[]) : Promise<Graph> => {
@@ -90,6 +109,8 @@ export const App = () => {
             numCities : numCities,
             boundaries : boundaries
         }
+
+        client.activate();
 
         const response = await fetch('http://localhost:8080/graph/',
             {
