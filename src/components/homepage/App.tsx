@@ -95,11 +95,19 @@ export const App = () => {
     });
 
     client.onConnect = (frame) => {
-        console.log("Connected ", frame)
+        console.log("Connected ", frame);
+        client.subscribe('/topic/solution', (solution) => {
+            console.log(JSON.parse(solution.body).content);
+        })
     };
 
     client.onWebSocketError = (frame) => {
         console.log("WebSocket Error", frame)
+    };
+
+    client.onStompError = (frame) => {
+        console.error('Broker reported error: ' + frame.headers['message']);
+        console.error('Additional details: ' + frame.body);
     };
 
     const style = createStyleClasses();
@@ -109,8 +117,6 @@ export const App = () => {
             numCities : numCities,
             boundaries : boundaries
         }
-
-        client.activate();
 
         const response = await fetch('http://localhost:8080/graph/',
             {
@@ -124,17 +130,16 @@ export const App = () => {
         return await response.json();
     }
 
-    const getSolution = async (solutionAttributes : SolutionAttributes) : Promise<Solution> => {
-        const response = await fetch('http://localhost:8080/solution/',
-            {
-                method: 'POST',
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body : JSON.stringify(solutionAttributes)
-            });
+    const clearGraph = () => {
+        setGraph({cities : []});
+        setSolution({solution : [], cost : 0});
+    }
 
-        return await response.json();
+    const getSolution = (solutionAttributes : SolutionAttributes) => {
+        client.publish({
+            destination : "cities",
+            body : JSON.stringify(solutionAttributes)
+        });
     }
 
     useEffect(() => {
@@ -180,8 +185,8 @@ export const App = () => {
                 for (let i = 0; i < solution.solution.length - 1; i++) {
                     ctx.moveTo(solution.solution[i].x, solution.solution[i].y);
                     ctx.lineTo(solution.solution[i + 1].x, solution.solution[i + 1].y);
+                    ctx.stroke();
                 }
-                ctx.stroke();
             }
 
         }
@@ -197,9 +202,10 @@ export const App = () => {
         } else if (!Number.isInteger(Number(numPointsRef.current?.value)) || Number(numPointsRef.current?.value) <= 0)  {
             alert("Invalid number of points, must be an integer > 0");
         } else {
-            setSolution({ solution : [], cost : 0});
+            clearGraph();
             getGraph(Number(numPointsRef.current?.value), [dimensions.width, dimensions.height]).then(res => {
                 setGraph(res);
+                client.activate();
             })
         }
     }
@@ -219,8 +225,6 @@ export const App = () => {
                 cities : graph.cities,
                 algoType : algorithm,
                 parameters : params
-            }).then(res => {
-                setSolution(res);
             })
         }
     }
@@ -251,6 +255,9 @@ export const App = () => {
               </FormControl>
               {graph.cities.length === 0 ? <Button style={style.headerButton} variant="outlined" disabled>Solve</Button> :
                   <Button style={style.headerButton} variant="outlined" onClick={solveHeuristic}>Solve</Button>
+              }
+              {graph.cities.length === 0 ? <Button style={style.headerButton} variant="outlined" disabled>Clear</Button> :
+                  <Button style={style.headerButton} variant="outlined" onClick={clearGraph}>Clear</Button>
               }
               <FormControl>
                   {solution.cost !== 0 ? <Typography style={style.solutionCost} variant="h5">Solution cost: {solution.cost}</Typography> : null}
